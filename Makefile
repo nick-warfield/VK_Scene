@@ -3,7 +3,7 @@ FILES =
 COMPILER = g++
 OPTIMIZATION = O2
 
-CFLAGS = -std=c++17 -$(OPTIMIZATION) -Wall -Wextra
+CFLAGS = -std=c++17 -$(OPTIMIZATION) -Wall -Wextra -DDEBUG
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lXrandr -lXi
 
 INCLUDE_DIR = include
