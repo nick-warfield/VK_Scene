@@ -8,3 +8,4 @@
 -I/usr/include/glm/
 -I/usr/include/GLFW/
 -I/usr/include/vulkan/
+-I/usr/include/KHR/
