@@ -1,5 +1,4 @@
 BINARY_NAME = VulkanTest
-FILES = 
 COMPILER = g++
 OPTIMIZATION = O2
 
@@ -20,8 +19,11 @@ $(shell [ -d $(RESOURCE_DIR) ] || mkdir -p $(RESOURCE_DIR))
 $(shell [ -d $(BUILD_DIR)/$(RESOURCE_DIR) ] || ln -s "$(realpath $(RESOURCE_DIR))" $(BUILD_DIR))
 
 CFLAGS += -I$(INCLUDE_DIR)
-HEADERS = $(patsubst %, $(INCLUDE_DIR)/%.hpp, $(FILES))
-OBJECTS = $(patsubst %, $(OBJECT_DIR)/%.o, main $(FILES))
+HEADERS = $(wildcard *, $(INCLUDE_DIR)/*.hpp)
+OBJECTS := $(wildcard *, $(SOURCE_DIR)/*.cpp)
+OBJECTS := $(notdir $(OBJECTS))
+OBJECTS := $(patsubst %.cpp,%.o, $(OBJECTS))
+OBJECTS := $(addprefix $(OBJECT_DIR)/, $(OBJECTS))
 
 SHADERS := $(wildcard *, $(SOURCE_DIR)/shaders/*) 
 SHADERS := $(notdir $(SHADERS))
