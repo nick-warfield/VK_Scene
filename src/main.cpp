@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -77,6 +78,7 @@ struct QueueFamilyIndices {
 
 class HelloTriangleApplication {
 public:
+	HelloTriangleApplication(std::filesystem::path p) : root(p) { }
     void run() {
 		initWindow();
         initVulkan();
@@ -85,6 +87,7 @@ public:
     }
 
 private:
+	const std::filesystem::path root;
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkSurfaceKHR surface;
@@ -302,8 +305,8 @@ private:
 	}
 
 	void createGraphicsPipeline() {
-		auto vertShaderCode = readFile("build/shaders/shader_vert.spv");
-		auto fragShaderCode = readFile("build/shaders/shader_frag.spv");
+		auto vertShaderCode = readFile("shaders/shader_vert.spv");
+		auto fragShaderCode = readFile("shaders/shader_frag.spv");
 
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -777,8 +780,8 @@ private:
 		}
 	}
 
-	static std::vector<char> readFile(const std::string& filename) {
-		std::ifstream file(filename, std::ios::ate | std::ios::binary);
+	std::vector<char> readFile(const std::string& filename) {
+		std::ifstream file((root / filename).string(), std::ios::ate | std::ios::binary);
 
 		if (!file.is_open()) {
 			throw std::runtime_error("failed to open file");
@@ -1048,8 +1051,9 @@ private:
 	}
 };
 
-int main() {
-    HelloTriangleApplication app;
+int main(int argc, char** argv) {
+	auto root = std::filesystem::absolute(argv[0]).parent_path();
+    HelloTriangleApplication app(root);
 
     try {
         app.run();
