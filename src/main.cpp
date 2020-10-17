@@ -1380,12 +1380,15 @@ private:
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			void* pUserData) {
+		(void)messageSeverity; (void)messageType; (void)pUserData;
+
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
 		return VK_FALSE;
 	}
 
 	static void framebufferResizedCallback(GLFWwindow* window, int width, int height) {
+		(void)width; (void)height;
 		auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}
@@ -1416,6 +1419,8 @@ private:
 };
 
 int main(int argc, char** argv) {
+	(void)argc;
+
 	auto root = std::filesystem::absolute(argv[0]).parent_path();
     HelloTriangleApplication app(root);
 
