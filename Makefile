@@ -5,6 +5,7 @@ OPTIMIZATION = O2
 CFLAGS = -std=c++17 -$(OPTIMIZATION) -Wall -Wextra -DDEBUG
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lXrandr -lXi
 
+LIB_DIR = lib
 INCLUDE_DIR = include
 SOURCE_DIR = src
 OBJECT_DIR = src/obj
@@ -18,7 +19,8 @@ $(shell [ -d $(BUILD_DIR)/shaders ] || mkdir -p $(BUILD_DIR)/shaders)
 $(shell [ -d $(RESOURCE_DIR) ] || mkdir -p $(RESOURCE_DIR))
 $(shell [ -d $(BUILD_DIR)/$(RESOURCE_DIR) ] || ln -s "$(realpath $(RESOURCE_DIR))" $(BUILD_DIR))
 
-CFLAGS += -I$(INCLUDE_DIR)
+CFLAGS += -I$(INCLUDE_DIR) -isystem $(LIB_DIR)
+
 HEADERS = $(wildcard *, $(INCLUDE_DIR)/*.hpp)
 OBJECTS := $(wildcard *, $(SOURCE_DIR)/*.cpp)
 OBJECTS := $(notdir $(OBJECTS))
