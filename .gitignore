@@ -2,6 +2,7 @@
 build
 src/obj
 resources
+tags
 
 # Prerequisites
 *.d
