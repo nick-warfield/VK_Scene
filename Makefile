@@ -16,13 +16,10 @@ TEST_DIR = tests
 CFLAGS += -I$(INCLUDE_DIR) -isystem $(LIB_DIR)
 
 HEADERS = $(wildcard *, $(INCLUDE_DIR)/*.hpp)
-OBJECTS := $(wildcard *, $(SOURCE_DIR)/*.cpp)
-OBJECTS := $(notdir $(OBJECTS))
-OBJECTS := $(patsubst %.cpp,%.o, $(OBJECTS))
+OBJECTS := main.o $(patsubst %.hpp,%.o, $(notdir $(HEADERS)))
 OBJECTS := $(addprefix $(OBJECT_DIR)/, $(OBJECTS))
 
-SHADERS := $(wildcard *, $(SOURCE_DIR)/shaders/*) 
-SHADERS := $(notdir $(SHADERS))
+SHADERS := $(notdir $(wildcard *, $(SOURCE_DIR)/shaders/*))
 SHADERS := $(subst .,_, $(SHADERS))
 SHADERS := $(addsuffix .spv, $(SHADERS))
 SHADERS := $(addprefix $(BUILD_DIR)/shaders/, $(SHADERS))
