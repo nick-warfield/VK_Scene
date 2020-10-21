@@ -36,7 +36,9 @@ $(OBJECT_DIR)/%.o: $(SOURCE_DIR)/%.cpp $(HEADERS)
 $(BUILD_DIR)/$(BINARY_NAME): init $(OBJECTS) $(SHADERS)
 	$(COMPILER) -o $@ $(OBJECTS) $(CFLAGS) $(LDFLAGS)
 
-.PHONY: run clean test init
+.PHONY: run clean test init all
+
+all: clean $(BUILD_DIR)/$(BINARY_NAME)
 
 run: $(BUILD_DIR)/$(BINARY_NAME)
 	@./$(BUILD_DIR)/$(BINARY_NAME)
