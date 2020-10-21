@@ -6,14 +6,20 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 #include <algorithm>
 #include <array>
 #include <optional>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 #include <chrono>
@@ -31,6 +37,9 @@ const bool enableValidationLayers = true;
 #else
 const bool enableValidationLayers = false;
 #endif
+
+const std::string MODEL_PATH = "resources/viking_room.obj";
+const std::string TEXTURE_PATH = "resources/viking_room.png";
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -95,6 +104,10 @@ struct Vertex {
     glm::vec3 color;
     glm::vec2 texCoord;
 
+	bool operator==(const Vertex& other) const {
+		return pos == other.pos && color == other.color && texCoord == other.texCoord;
+	}
+
     static VkVertexInputBindingDescription getBindingDescription()
     {
 	VkVertexInputBindingDescription bindingDescription {};
@@ -127,22 +140,15 @@ struct Vertex {
     }
 };
 
-// rectangle with normalized device coordinates
-const std::vector<Vertex> vertices = {
-    { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-    { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-    { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
-
-    { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-    { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-    { { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } }
-};
-const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0, // square 1
-    4, 5, 6, 6, 7, 4  // square 2
-};
+namespace std {
+	template<> struct hash<Vertex> {
+		size_t operator()(Vertex const& vertex) const {
+			return ((hash<glm::vec3>()(vertex.pos) ^
+					(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+					(hash<glm::vec2>()(vertex.texCoord) << 1);
+		}
+	};
+}
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -192,8 +198,6 @@ private:
     std::vector<VkFence> imagesInFlight;
     size_t currentFrame = 0;
     bool framebufferResized = false;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
     std::vector<VkBuffer> uniformBuffers;
@@ -207,6 +211,10 @@ private:
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
 
     void initWindow()
     {
@@ -238,6 +246,7 @@ private:
 	createTextureImage();
 	createTextureImageView();
 	createTextureSampler();
+	loadModel();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -246,6 +255,45 @@ private:
 	createCommandBuffers();
 	createSyncObjects();
     }
+
+	void loadModel() {
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string err;
+
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, MODEL_PATH.c_str())) {
+			throw std::runtime_error(err);
+		}
+
+		std::unordered_map<Vertex, uint32_t> uniqueVertices;
+
+		for (const auto& shape : shapes) {
+			for (const auto& index : shape.mesh.indices) {
+				Vertex vertex{};
+
+				vertex.pos = {
+					attrib.vertices[3 * index.vertex_index + 0],
+					attrib.vertices[3 * index.vertex_index + 1],
+					attrib.vertices[3 * index.vertex_index + 2]
+				};
+
+				vertex.texCoord = {
+					attrib.texcoords[2 * index.texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+				};
+
+				vertex.color = { 1.0f, 1.0f, 1.0f };
+
+				if (uniqueVertices.count(vertex) == 0) {
+					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+					vertices.push_back(vertex);
+				}
+
+				indices.push_back(uniqueVertices[vertex]);
+			}
+		}
+	}
 
     void createDepthResources()
     {
@@ -357,7 +405,7 @@ private:
     {
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(
-	    (root / "resources/infest_the_rats_nest.jpg").c_str(),
+	    (root / "resources/viking_room.png").c_str(),
 	    &texWidth,
 	    &texHeight,
 	    &texChannels,
@@ -929,7 +977,7 @@ private:
 	    VkBuffer vertexBuffers[] = { vertexBuffer };
 	    VkDeviceSize offsets[] = { 0 };
 	    vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-	    vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+	    vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 	    vkCmdBindDescriptorSets(
 		commandBuffers[i],
@@ -1705,7 +1753,7 @@ private:
 	UniformBufferObject ubo {};
 	ubo.model = glm::rotate(
 	    glm::mat4(1.0f),
-	    time * glm::radians(90.0f),
+	    time * glm::radians(0.0f),
 	    glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.view = glm::lookAt(
 	    glm::vec3(2.0f, 2.0f, 2.0f),
